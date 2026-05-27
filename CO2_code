@@ -1,0 +1,256 @@
+import java.util.*;
+
+// Resource Class
+class Resource {
+
+    int resourceId;
+    String resourceName;
+
+    Resource(int resourceId, String resourceName) {
+
+        this.resourceId = resourceId;
+        this.resourceName = resourceName;
+    }
+}
+
+// B+ Tree Node Class
+class BPlusNode {
+
+    boolean isLeaf;
+
+    ArrayList<Integer> keys;
+    ArrayList<BPlusNode> children;
+    ArrayList<Resource> records;
+
+    BPlusNode next;
+
+    BPlusNode(boolean isLeaf) {
+
+        this.isLeaf = isLeaf;
+
+        keys = new ArrayList<>();
+        children = new ArrayList<>();
+        records = new ArrayList<>();
+
+        next = null;
+    }
+}
+
+// B+ Tree Class
+class BPlusTree {
+
+    private BPlusNode root;
+
+    private final int MAX = 3;
+
+    BPlusTree() {
+
+        root = new BPlusNode(true);
+    }
+
+    // Find Leaf Node
+    private BPlusNode findLeaf(BPlusNode node, int key) {
+
+        if (node.isLeaf) {
+            return node;
+        }
+
+        int i = 0;
+
+        while (i < node.keys.size()) {
+
+            if (key < node.keys.get(i)) {
+                break;
+            }
+
+            i++;
+        }
+
+        return findLeaf(node.children.get(i), key);
+    }
+
+    // Insert Resource
+    public void insert(int key, String name) {
+
+        BPlusNode leaf = findLeaf(root, key);
+
+        int i = 0;
+
+        while (i < leaf.keys.size() && key > leaf.keys.get(i)) {
+            i++;
+        }
+
+        leaf.keys.add(i, key);
+
+        leaf.records.add(i, new Resource(key, name));
+
+        // Split Leaf Node
+        if (leaf.keys.size() > MAX) {
+            splitLeaf(leaf);
+        }
+    }
+
+    // Split Operation
+    private void splitLeaf(BPlusNode leaf) {
+
+        int mid = (MAX + 1) / 2;
+
+        BPlusNode newLeaf = new BPlusNode(true);
+
+        while (leaf.keys.size() > mid) {
+
+            newLeaf.keys.add(leaf.keys.remove(mid));
+
+            newLeaf.records.add(leaf.records.remove(mid));
+        }
+
+        newLeaf.next = leaf.next;
+
+        leaf.next = newLeaf;
+
+        // Create New Root
+        if (leaf == root) {
+
+            BPlusNode newRoot = new BPlusNode(false);
+
+            newRoot.keys.add(newLeaf.keys.get(0));
+
+            newRoot.children.add(leaf);
+            newRoot.children.add(newLeaf);
+
+            root = newRoot;
+        }
+    }
+
+    // Display All Resources
+    public void displayResources() {
+
+        BPlusNode current = root;
+
+        while (!current.isLeaf) {
+            current = current.children.get(0);
+        }
+
+        System.out.println("Original Campus Resources:");
+
+        while (current != null) {
+
+            for (Resource r : current.records) {
+
+                System.out.println(
+                    "Resource ID " + r.resourceId +
+                    " = " + r.resourceName
+                );
+            }
+
+            current = current.next;
+        }
+    }
+
+    // Search Resource
+    public void search(int key) {
+
+        BPlusNode leaf = findLeaf(root, key);
+
+        boolean found = false;
+
+        for (int i = 0; i < leaf.keys.size(); i++) {
+
+            if (leaf.keys.get(i) == key) {
+
+                System.out.println("\nResource Found:");
+
+                System.out.println(
+                    "Resource ID " +
+                    leaf.records.get(i).resourceId +
+                    " = " +
+                    leaf.records.get(i).resourceName
+                );
+
+                found = true;
+            }
+        }
+
+        if (!found) {
+            System.out.println("\nResource Not Found");
+        }
+    }
+
+    // Display B+ Tree Keys
+    public void displayTreeKeys() {
+
+        BPlusNode current = root;
+
+        while (!current.isLeaf) {
+            current = current.children.get(0);
+        }
+
+        System.out.println("\nB+ Tree Leaf Nodes:");
+
+        while (current != null) {
+
+            for (int key : current.keys) {
+
+                System.out.println("Key = " + key);
+            }
+
+            current = current.next;
+        }
+    }
+
+    // Count Total Resources
+    public void totalResources() {
+
+        BPlusNode current = root;
+
+        while (!current.isLeaf) {
+            current = current.children.get(0);
+        }
+
+        int count = 0;
+
+        while (current != null) {
+
+            count += current.records.size();
+
+            current = current.next;
+        }
+
+        System.out.println("\nTotal Campus Resources = " + count);
+    }
+}
+
+// Main Class
+public class Main {
+
+    public static void main(String[] args) {
+
+        BPlusTree tree = new BPlusTree();
+
+        // Insert Campus Resources
+        tree.insert(101, "Computer Lab");
+        tree.insert(102, "Seminar Hall");
+        tree.insert(103, "Library");
+        tree.insert(104, "Physics Lab");
+        tree.insert(105, "Classroom A");
+        tree.insert(106, "Classroom B");
+
+        // Display Resources
+        tree.displayResources();
+
+        // Display Tree Keys
+        tree.displayTreeKeys();
+
+        // Total Resources
+        tree.totalResources();
+
+        // Search Resource
+        System.out.println("\nSearching Resource 104...");
+        tree.search(104);
+
+        System.out.println("\nSearching Resource 110...");
+        tree.search(110);
+
+        System.out.println("\nB+ Tree Indexing Completed Successfully.");
+    }
+}
